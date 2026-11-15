@@ -1,10 +1,12 @@
 import app from "./app.js";
 import { env } from "./config/env.js";
-import { pool } from "./db/pool.js";
+import { pool } from "./db/index.js";
+import { redis } from "./redis/client.js";
 
 async function start() {
-  // Verify database connectivity before accepting traffic.
+  // Verify database and cache connectivity before accepting traffic.
   await pool.query("SELECT 1");
+  await redis.ping();
   app.listen(env.port, () => {
     console.log(`Backend listening on http://localhost:${env.port}`);
   });

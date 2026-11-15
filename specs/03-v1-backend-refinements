@@ -1,0 +1,72 @@
+# Backend Refinement
+
+Refine the existing Express + TypeScript backend. Keep the overall architecture and API surface stable so the current frontend continues to work. Focus on correctness, security, maintainability, and production readiness.
+
+## Core Goals
+
+1. Replace the ad-hoc SQL + custom migration runner with a proper, typed data layer.
+2. Make code execution safe and modular.
+3. Clean up incomplete / inconsistent pieces (unused schema, missing scripts, brittle judging logic).
+4. Keep the public API contracts essentially the same.
+
+## Data Layer
+
+- Introduce **Drizzle ORM** (preferred) or Prisma.
+- Move schema definition into TypeScript (or keep SQL migrations but generate them from the ORM).
+- Replace all raw `pool.query` calls with typed queries.
+- Remove the custom `migrate.ts` + `database/migrations/001_init.sql` approach once the ORM migration system is in place.
+- The existing `sessions` table in the schema is unused (auth uses Redis + express-session). Either remove it or actually use it. Prefer keeping Redis sessions and dropping the unused table.
+- Fix the dangling `"seed"` script in `package.json` (either implement a real seed or remove the script).
+
+## Code Execution & Judging (`execution/`)
+
+Current problems:
+- User code is written to `/tmp` and executed with `spawn` on the host process.
+- Python judging injects user code via string template + `exec`.
+- Function name extraction from snippets is fragile.
+- No real isolation, memory/CPU limits, or network restrictions.
+- `runner.ts` and `judge.ts` overlap and support different language sets.
+
+Required changes:
+- Keep the judge modular so it can later become a separate service.
+- For the current iteration, still run in a child process but:
+  - Use a temporary directory per run and clean it reliably.
+  - Add hard timeouts and basic resource limits.
+  - Never interpolate user code into a larger script in a way that allows escape (especially Python).
+- Prefer a cleaner approach for Python: write the user’s code to a file, then import/call the expected function/class instead of `exec` on a giant string.
+- Make language support explicit and consistent between run and submit paths.
+- Improve status reporting (Compile Error vs Runtime Error vs TLE vs WA) so the frontend can show accurate feedback.
+- Document clearly that this is still a development-grade sandbox and must be replaced by a proper containerized judge (Docker/nsjail/Firecracker) before any public deployment.
+
+## Auth & Sessions
+
+- Keep Redis-backed express-session.
+- Ensure session typing is clean (avoid `as any` on `req.session`).
+- Add basic rate limiting on `/api/auth/login` and `/api/auth/register`.
+- Validate and sanitize all auth inputs with Zod (already partially done — make it consistent).
+
+## Routes & Structure
+
+- Keep existing route prefixes (`/api/auth`, `/api/problems`, `/api/submissions`, `/api/users`).
+- Move business logic out of route handlers into small service modules where it improves readability.
+- Add consistent error responses and use the central error handler properly.
+- Ensure problem listing/search/pagination remains efficient (indexes already exist; keep them).
+
+## Other Cleanup
+
+- Centralize environment config (already started in `config/env.ts`) — fail fast on missing critical vars in production.
+- Remove dead code and unused tables/columns.
+- Make the LeetCode ingest script more robust or mark it clearly as a one-time/dev tool (do not treat it as production code).
+- Add a minimal health check that also verifies DB + Redis connectivity.
+
+## Constraints
+
+- Do not break the existing frontend contracts.
+- Prefer incremental, readable changes over a full rewrite.
+- Keep TypeScript strict.
+- No external auth providers.
+- Code execution must never run inside the main Node process.
+
+## Deliverable
+
+A cleaner, more secure, and maintainable backend that uses a proper ORM, has a safer (still temporary) judge, removes dead schema and scripts, and is ready for the next iteration (real sandbox + more languages).

@@ -41,7 +41,17 @@ app.use(
   }),
 );
 
-app.get("/api/health", (_req, res) => res.json({ ok: true }));
+app.get("/api/health", async (_req, res) => {
+  try {
+    const { pool } = await import("./db/index.js");
+    const { redis } = await import("./redis/client.js");
+    await pool.query("SELECT 1");
+    await redis.ping();
+    res.json({ ok: true, database: "up", redis: "up" });
+  } catch (err: any) {
+    res.status(503).json({ ok: false, error: err.message });
+  }
+});
 
 app.use("/api/auth", authRoutes);
 app.use("/api/problems", problemRoutes);

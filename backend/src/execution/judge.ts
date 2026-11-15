@@ -168,20 +168,19 @@ async function evaluatePython(code: string, fnName: string, tests: TestCase[]): 
 
     const dir = path.join(os.tmpdir(), "opencode-judge", randomUUID());
     fs.mkdirSync(dir, { recursive: true });
-    const file = path.join(dir, "main.py");
-    const script = `
+    // Write the user's code to its own module so it is imported rather than
+    // exec'd from a templated string, avoiding code-injection escapes.
+    fs.writeFileSync(path.join(dir, "solution.py"), code);
+    const driver = `
 import json, ast, sys
-
-_USER_CODE = ${JSON.stringify(code)}
-ns = {}
-exec(_USER_CODE, ns)
+import solution
 
 _fn_name = ${JSON.stringify(fnName)}
-if "Solution" in ns and hasattr(ns["Solution"], _fn_name):
-    _instance = ns["Solution"]()
+if hasattr(solution, "Solution"):
+    _instance = solution.Solution()
     _fn = getattr(_instance, _fn_name)
 else:
-    _fn = ns[_fn_name]
+    _fn = getattr(solution, _fn_name)
 
 _args = [ast.literal_eval(x) for x in ${JSON.stringify(args)}]
 try:
@@ -191,9 +190,10 @@ except Exception as e:
     sys.exit(1)
 sys.stdout.write(json.dumps(_result))
 `;
-    fs.writeFileSync(file, script);
+    const driverPath = path.join(dir, "run.py");
+    fs.writeFileSync(driverPath, driver);
 
-    const run = await spawnRun("python3", [file], dir, "", 10000);
+    const run = await spawnRun("python3", [driverPath], dir, "", 10000);
     totalMs += run.ms;
     fs.rmSync(dir, { recursive: true, force: true });
 
@@ -241,11 +241,12 @@ sys.stdout.write(json.dumps(_result))
 export async function evaluateSubmission(
   language: string,
   code: string,
-  problem: { test_cases: TestCase[]; code_snippets: Record<string, string> },
+  problem: any,
 ): Promise<JudgeResult> {
-  const tests = Array.isArray(problem.test_cases) ? problem.test_cases : [];
+  const tests = Array.isArray(problem.testCases) ? problem.testCases : Array.isArray(problem.test_cases) ? problem.test_cases : [];
   const lang = language.toLowerCase();
-  const snippet = problem.code_snippets?.[lang] || problem.code_snippets?.[language] || "";
+  const snippets = problem.codeSnippets || problem.code_snippets || {};
+  const snippet = snippets?.[lang] || snippets?.[language] || "";
   const fnName = extractFunctionName(snippet, lang);
 
   if (lang === "javascript" || lang === "typescript") {

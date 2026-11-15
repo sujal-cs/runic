@@ -1,4 +1,5 @@
-import { pool } from "../db/pool.js";
+import { db } from "../db/index.js";
+import { problems } from "../db/schema.js";
 
 const LEETCODE_GRAPHQL = "https://leetcode.com/graphql";
 
@@ -138,34 +139,35 @@ async function main() {
       const constraints = parseConstraints(d.content || "");
       const testCases = parseTestCases(d.exampleTestcases || "", d.metaData || "{}", d.content || "");
 
-      await pool.query(
-        `INSERT INTO problems
-          (frontend_id, title, slug, difficulty, description, examples, constraints, test_cases, code_snippets, tags, acceptance_rate)
-         VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7::jsonb,$8::jsonb,$9::jsonb,$10::jsonb,$11)
-         ON CONFLICT (slug) DO UPDATE SET
-           title = EXCLUDED.title,
-           difficulty = EXCLUDED.difficulty,
-           description = EXCLUDED.description,
-           constraints = EXCLUDED.constraints,
-           test_cases = EXCLUDED.test_cases,
-           code_snippets = EXCLUDED.code_snippets,
-           tags = EXCLUDED.tags,
-           acceptance_rate = EXCLUDED.acceptance_rate,
-           updated_at = NOW()`,
-        [
-          d.questionFrontendId,
-          d.title,
-          d.titleSlug,
-          d.difficulty,
-          d.content || "",
-          JSON.stringify([]),
-          JSON.stringify(constraints),
-          JSON.stringify(testCases),
-          JSON.stringify(snippets),
-          JSON.stringify((d.topicTags || []).map((t: any) => t.name)),
-          q.acRate,
-        ],
-      );
+      await db
+        .insert(problems)
+        .values({
+          frontendId: d.questionFrontendId,
+          title: d.title,
+          slug: d.titleSlug,
+          difficulty: d.difficulty,
+          description: d.content || "",
+          examples: [],
+          constraints,
+          testCases,
+          codeSnippets: snippets,
+          tags: (d.topicTags || []).map((t: any) => t.name),
+          acceptanceRate: String(q.acRate),
+        })
+        .onConflictDoUpdate({
+          target: problems.slug,
+          set: {
+            title: d.title,
+            difficulty: d.difficulty,
+            description: d.content || "",
+            constraints,
+            testCases,
+            codeSnippets: snippets,
+            tags: (d.topicTags || []).map((t: any) => t.name),
+            acceptanceRate: String(q.acRate),
+            updatedAt: new Date(),
+          },
+        });
       console.log(`Ingested: ${d.questionFrontendId} ${d.title}`);
       await new Promise((r) => setTimeout(r, 400));
     } catch (err) {
@@ -173,7 +175,6 @@ async function main() {
     }
   }
 
-  await pool.end();
   console.log("Ingestion complete.");
 }
 

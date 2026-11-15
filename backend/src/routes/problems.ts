@@ -1,9 +1,10 @@
 import { Router } from "express";
-import { pool } from "../db/pool.js";
+import { db } from "../db/index.js";
+import { problems } from "../db/schema.js";
+import { eq, ilike, or, sql } from "drizzle-orm";
 
 const router = Router();
 
-// List problems with search, difficulty filter, tag filter, sorting, pagination.
 router.get("/", async (req, res, next) => {
   try {
     const q = (req.query.q as string) || "";
@@ -14,35 +15,33 @@ router.get("/", async (req, res, next) => {
     const limit = Math.min(50, Math.max(1, Number(req.query.limit || 20)));
     const offset = (page - 1) * limit;
 
-    const conditions: string[] = [];
-    const params: any[] = [];
-    if (q) {
-      params.push(`%${q}%`);
-      conditions.push(`(title ILIKE $${params.length} OR slug ILIKE $${params.length})`);
+    let query = db.select().from(problems);
+    const conditions: any[] = [];
+    if (q) conditions.push(or(ilike(problems.title, `%${q}%`), ilike(problems.slug, `%${q}%`)));
+    if (difficulty) conditions.push(eq(problems.difficulty, difficulty));
+    if (tag) conditions.push(sql`${problems.tags} @> ${JSON.stringify([tag])}::jsonb`);
+    if (conditions.length) {
+      // drizzle requires and() for multiple conditions
+      const { and } = await import("drizzle-orm");
+      query = query.where(and(...conditions)) as any;
     }
-    if (difficulty) {
-      params.push(difficulty);
-      conditions.push(`difficulty = $${params.length}`);
-    }
-    if (tag) {
-      params.push(JSON.stringify([tag]));
-      conditions.push(`tags @> $${params.length}::jsonb`);
-    }
-    const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
 
-    const orderCol = sort === "title" ? "title" : sort === "difficulty" ? "difficulty" : "frontend_id::int";
-    const { rows } = await pool.query(
-      `SELECT id, frontend_id, title, slug, difficulty, tags, acceptance_rate
-       FROM problems ${where}
-       ORDER BY ${orderCol} ASC
-       LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
-      [...params, limit, offset],
-    );
-    const { rows: countRows } = await pool.query(
-      `SELECT COUNT(*)::int AS total FROM problems ${where}`,
-      params,
-    );
-    res.json({ problems: rows, total: countRows[0].total, page, limit });
+    const orderCol =
+      sort === "title" ? problems.title : sort === "difficulty" ? problems.difficulty : problems.id;
+    const rows = await query.orderBy(orderCol).limit(limit).offset(offset);
+    const [{ count }] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(problems);
+    const mapped = rows.map((p: any) => ({
+      id: p.id,
+      frontend_id: p.frontendId,
+      title: p.title,
+      slug: p.slug,
+      difficulty: p.difficulty,
+      tags: p.tags,
+      acceptance_rate: p.acceptanceRate,
+    }));
+    res.json({ problems: mapped, total: Number(count), page, limit });
   } catch (err) {
     next(err);
   }
@@ -50,10 +49,10 @@ router.get("/", async (req, res, next) => {
 
 router.get("/tags", async (_req, res, next) => {
   try {
-    const { rows } = await pool.query(
-      `SELECT DISTINCT jsonb_array_elements_text(tags) AS tag FROM problems ORDER BY tag`,
-    );
-    res.json({ tags: rows.map((r) => r.tag) });
+    const rows = await db.select({ tags: problems.tags }).from(problems);
+    const set = new Set<string>();
+    for (const r of rows) for (const t of (r.tags as string[]) || []) set.add(t);
+    res.json({ tags: [...set].sort() });
   } catch (err) {
     next(err);
   }
@@ -61,9 +60,24 @@ router.get("/tags", async (_req, res, next) => {
 
 router.get("/:slug", async (req, res, next) => {
   try {
-    const { rows } = await pool.query("SELECT * FROM problems WHERE slug = $1", [req.params.slug]);
-    if (!rows[0]) return res.status(404).json({ error: "Problem not found" });
-    res.json({ problem: rows[0] });
+    const [problem] = await db.select().from(problems).where(eq(problems.slug, req.params.slug));
+    if (!problem) return res.status(404).json({ error: "Problem not found" });
+    res.json({
+      problem: {
+        id: problem.id,
+        frontend_id: problem.frontendId,
+        title: problem.title,
+        slug: problem.slug,
+        difficulty: problem.difficulty,
+        description: problem.description,
+        examples: problem.examples,
+        constraints: problem.constraints,
+        test_cases: problem.testCases,
+        code_snippets: problem.codeSnippets,
+        tags: problem.tags,
+        acceptance_rate: problem.acceptanceRate,
+      },
+    });
   } catch (err) {
     next(err);
   }

@@ -10,3 +10,15 @@ export const env = {
   sessionSecret: process.env.SESSION_SECRET || "dev-session-secret-change-me",
   frontendUrl: process.env.FRONTEND_URL || "http://localhost:5173",
 };
+
+if (env.nodeEnv === "production") {
+  const required = ["DATABASE_URL", "REDIS_URL", "SESSION_SECRET", "FRONTEND_URL"];
+  for (const key of required) {
+    if (!process.env[key]) {
+      throw new Error(`Missing required environment variable: ${key}`);
+    }
+  }
+  if (env.sessionSecret === "dev-session-secret-change-me") {
+    throw new Error("SESSION_SECRET must be set in production");
+  }
+}
