@@ -41,7 +41,7 @@ export default function LandingPage() {
           Master data structures and algorithms with a clean, focused workspace
         </h1>
         <p style={{ fontSize: 18, color: "var(--text-secondary)", maxWidth: 640, margin: 0 }}>
-          CodeForge gives you a distraction-free environment to browse problems, write code in your
+          Runic gives you a distraction-free environment to browse problems, write code in your
           favorite language, run test cases, and track your progress — all in one place.
         </p>
         <div style={{ display: "flex", gap: 12, marginTop: 8 }}>

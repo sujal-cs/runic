@@ -14,7 +14,7 @@ export default function Layout({ children, fullWidth = false }: { children: Reac
     <div className="layout">
       <header className="navbar">
         <Link to="/" className="navbar-brand">
-          CodeForge
+          Runic
         </Link>
         <nav className="navbar-links">
           <Link to="/problems">Problems</Link>
