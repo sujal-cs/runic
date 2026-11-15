@@ -1,0 +1,22 @@
+{
+  "name": "leetcode-clone",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev -w backend\" \"npm run dev -w frontend\"",
+    "build": "npm run build -w backend && npm run build -w frontend",
+    "db:migrate": "npm run migrate -w backend",
+    "db:seed": "npm run seed -w backend",
+    "ingest": "npm run ingest -w backend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  },
+  "allowScripts": {
+    "bcrypt@5.1.1": true,
+    "esbuild@0.28.2": true
+  }
+}
