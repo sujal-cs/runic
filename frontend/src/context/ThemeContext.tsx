@@ -9,12 +9,19 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
+// Dark is the default look. A stored preference always wins; otherwise we
+// respect the OS setting before falling back to dark.
+function initialTheme(): Theme {
+  const stored = localStorage.getItem("theme");
+  if (stored === "light" || stored === "dark") return stored;
+  if (window.matchMedia?.("(prefers-color-scheme: light)").matches) return "light";
+  return "dark";
+}
+
 // Persists the selected theme in localStorage and mirrors it onto the
 // document element so CSS variables swap globally.
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(() => {
-    return (localStorage.getItem("theme") as Theme) || "light";
-  });
+  const [theme, setTheme] = useState<Theme>(initialTheme);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);

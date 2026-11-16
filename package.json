@@ -1,5 +1,5 @@
 {
-  "name": "leetcode-clone",
+  "name": "runic",
   "private": true,
   "workspaces": [
     "backend",
@@ -7,9 +7,13 @@
   ],
   "scripts": {
     "dev": "concurrently \"npm run dev -w backend\" \"npm run dev -w frontend\"",
+    "dev:judge": "concurrently \"npm run dev -w backend\" \"npm run dev -w frontend\" \"npm run worker -w backend\"",
+    "worker": "npm run worker -w backend",
+    "judge:images": "npm run judge:images -w backend",
     "build": "npm run build -w backend && npm run build -w frontend",
-    "db:migrate": "npm run migrate -w backend",
-    "db:seed": "npm run seed -w backend",
+    "db:generate": "npm run db:generate -w backend",
+    "db:migrate": "npm run db:migrate -w backend",
+    "db:push": "npm run db:push -w backend",
     "ingest": "npm run ingest -w backend"
   },
   "devDependencies": {

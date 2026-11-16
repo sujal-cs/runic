@@ -10,44 +10,68 @@ interface Props {
 }
 
 export default function TestCasePanel({ testCases, results, selectedCase, onSelect, summary }: Props) {
-  if (testCases.length === 0) return <div className="card"><div style={{ color: "var(--text-subtle)" }}>No test cases available.</div></div>;
+  if (testCases.length === 0) {
+    return (
+      <div className="panel testcase-panel">
+        <div className="state">No test cases available.</div>
+      </div>
+    );
+  }
+
   const selectedResult = results[selectedCase];
+  const active = testCases[selectedCase];
+
   return (
-    <div className="card" style={{ minWidth: 0 }}>
-      <h3 style={{ marginTop: 0 }}>Test Cases</h3>
-      <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
+    <div className="panel testcase-panel">
+      <div className="testcase-head">
+        <h3>Test cases</h3>
+        {summary && <span className="testcase-summary">{summary}</span>}
+      </div>
+
+      <div className="case-tabs" role="tablist" aria-label="Test cases">
         {testCases.map((_, i) => {
           const r = results[i];
-          const color = r == null ? "var(--text-subtle)" : r.passed ? "var(--success)" : "var(--danger)";
           return (
-            <button key={i} className="btn" onClick={() => onSelect(i)}
-              style={{ borderColor: selectedCase === i ? "var(--brand)" : "var(--border)", color, fontWeight: selectedCase === i ? 600 : 400 }}>
-              Case {i + 1}{r != null ? (r.passed ? " ✓" : " ✗") : ""}
+            <button
+              key={i}
+              role="tab"
+              aria-selected={selectedCase === i}
+              className="case-tab"
+              data-active={selectedCase === i}
+              data-state={r == null ? undefined : r.passed ? "pass" : "fail"}
+              onClick={() => onSelect(i)}
+            >
+              Case {i + 1}
+              {r != null ? (r.passed ? " ✓" : " ✗") : ""}
             </button>
           );
         })}
       </div>
-      {summary && <div style={{ fontSize: 13, color: "var(--text-subtle)", marginBottom: 8 }}>{summary}</div>}
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <div>
-          <div style={{ fontSize: 12, color: "var(--text-subtle)", marginBottom: 4 }}>Input</div>
-          <pre style={{ margin: 0 }}>{testCases[selectedCase]?.input}</pre>
+
+      <div className="case-body">
+        <div className="io-group">
+          <div className="io-label">Input</div>
+          <div className="io-block">{active?.input}</div>
         </div>
-        <div>
-          <div style={{ fontSize: 12, color: "var(--text-subtle)", marginBottom: 4 }}>Expected Output</div>
-          <pre style={{ margin: 0 }}>{testCases[selectedCase]?.expected ?? "—"}</pre>
+
+        <div className="io-group">
+          <div className="io-label">Expected output</div>
+          <div className="io-block">{active?.expected ?? "—"}</div>
         </div>
+
         {selectedResult && (
-          <div>
-            <div style={{ fontSize: 12, color: "var(--text-subtle)", marginBottom: 4 }}>Actual Output</div>
-            <pre style={{ margin: 0 }}>
-              {selectedResult.stdout && selectedResult.stdout.trim().length > 0 ? selectedResult.stdout : "No output produced."}
-            </pre>
-            {selectedResult.stderr && <pre style={{ color: "var(--danger)", marginTop: 8 }}>{selectedResult.stderr}</pre>}
+          <div className="io-group">
+            <div className="io-label">Your output</div>
+            <div className={`io-block${selectedResult.stderr ? " is-error" : ""}`}>
+              {selectedResult.stdout && selectedResult.stdout.trim().length > 0
+                ? selectedResult.stdout
+                : "No output produced."}
+            </div>
+            {selectedResult.stderr && <div className="io-block is-error" style={{ marginTop: 8 }}>{selectedResult.stderr}</div>}
             {!selectedResult.passed && selectedResult.status === "Wrong Answer" && (
-              <div style={{ fontSize: 13, marginTop: 4 }}>
-                <div>Expected: {selectedResult.expected ?? "—"}</div>
-                <div>Actual: {selectedResult.actual ?? "(empty)"}</div>
+              <div className="io-mismatch">
+                <span>Expected <b>{selectedResult.expected ?? "—"}</b></span>
+                <span>Actual <b>{selectedResult.actual ?? "(empty)"}</b></span>
               </div>
             )}
           </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import { useAuth } from "../context/AuthContext";
@@ -21,6 +21,26 @@ interface Problem {
   tags: string[];
 }
 
+// A submission is finished once the judge has produced a verdict. The worker
+// reports Pending -> Processing -> final, so anything else is terminal.
+const FINAL_STATUSES = new Set([
+  "Accepted",
+  "Wrong Answer",
+  "Time Limit Exceeded",
+  "Memory Limit Exceeded",
+  "Runtime Error",
+  "Compilation Error",
+  "Output Limit Exceeded",
+  "Unsupported Language",
+  "Judge Unavailable",
+  "Judge Error",
+]);
+
+const PENDING_STATUSES = new Set(["Pending", "Processing"]);
+
+const POLL_INTERVAL_MS = 1200;
+const POLL_ATTEMPTS = 60;
+
 export default function ProblemDetailPage() {
   const { slug } = useParams();
   const { user } = useAuth();
@@ -34,6 +54,15 @@ export default function ProblemDetailPage() {
   const [submitting, setSubmitting] = useState(false);
   const [running, setRunning] = useState(false);
   const [selectedCase, setSelectedCase] = useState(0);
+  const pollToken = useRef(0);
+
+  useEffect(() => {
+    // Invalidate any in-flight polling when the page unmounts or the problem
+    // changes, so a late response cannot update a stale screen.
+    return () => {
+      pollToken.current += 1;
+    };
+  }, [slug]);
 
   useEffect(() => {
     if (!slug) return;
@@ -78,6 +107,38 @@ export default function ProblemDetailPage() {
     }
   };
 
+  // Poll a queued submission until the worker publishes a verdict. This keeps
+  // results visible after a refresh or a dropped connection.
+  const followSubmission = async (id: string, token: number) => {
+    for (let attempt = 0; attempt < POLL_ATTEMPTS; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+      if (pollToken.current !== token) return;
+
+      try {
+        const data = await api(`/api/submissions/${id}`);
+        if (pollToken.current !== token) return;
+
+        const submission = data.submission;
+        setResult({
+          status: submission.status,
+          results: submission.results ?? [],
+          message: submission.message,
+          runtimeMs: submission.runtime_ms,
+        });
+        if (FINAL_STATUSES.has(submission.status)) return;
+      } catch (err) {
+        console.error("[problem] failed to poll submission", err);
+        return;
+      }
+    }
+    if (pollToken.current === token) {
+      setResult((current: any) => ({
+        ...(current ?? { results: [] }),
+        message: "The judge is taking longer than expected. Refresh to check for a result.",
+      }));
+    }
+  };
+
   const handleSubmit = async () => {
     if (!user) {
       sessionStorage.setItem("notice", "Login required for this activity");
@@ -87,6 +148,9 @@ export default function ProblemDetailPage() {
     if (!problem) return;
     setSubmitting(true);
     setResult(null);
+    pollToken.current += 1;
+    const token = pollToken.current;
+
     try {
       const data = await api("/api/submissions", {
         method: "POST",
@@ -94,6 +158,12 @@ export default function ProblemDetailPage() {
       });
       setResult(data);
       setSelectedCase(0);
+
+      // The API blocks briefly for a verdict; if the worker is still busy the
+      // submission is durably queued and we follow it to completion.
+      if (PENDING_STATUSES.has(data.submission?.status)) {
+        void followSubmission(data.submission.id, token);
+      }
     } catch (e: any) {
       setResult({ status: "Error", results: [], stderr: e.message });
     } finally {
@@ -101,19 +171,52 @@ export default function ProblemDetailPage() {
     }
   };
 
-  if (!problem) return <div className="card">Loading...</div>;
+  if (!problem) {
+    return (
+      <div className="workspace">
+        <div className="state">Loading problem…</div>
+      </div>
+    );
+  }
 
   const results = result?.results || [];
   const passedCount = results.filter((r: any) => r.passed).length;
-  const summary = result ? `${passedCount}/${results.length} Test Cases Passed · ${result.status}` : undefined;
+  const summary = result
+    ? results.length === 0
+      ? result.status
+      : `${passedCount}/${results.length} Test Cases Passed · ${result.status}`
+    : undefined;
+
+  const verdictClass =
+    result?.status === "Accepted"
+      ? "is-ok"
+      : PENDING_STATUSES.has(result?.status)
+        ? "is-pending"
+        : result
+          ? "is-fail"
+          : "";
 
   return (
-    <div style={{ height: "calc(100vh - 56px)", overflow: "hidden", padding: 12 }}>
-      <div style={{ marginBottom: 8 }}>
-        <span className={`badge badge-${problem.difficulty.toLowerCase()}`}>{problem.difficulty}</span>
-        <h1 style={{ display: "inline", marginLeft: 12, fontSize: 20 }}>{problem.title}</h1>
+    <div className="workspace">
+      <div className="workspace-bar">
+        <button type="button" className="workspace-back" onClick={() => navigate("/problems")}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M19 12H5M11 6l-6 6 6 6" />
+          </svg>
+          Problems
+        </button>
+        <h1 className="workspace-title">
+          {problem.frontend_id}. {problem.title}
+        </h1>
+        <div className="workspace-meta">
+          <span className={`badge badge-${problem.difficulty.toLowerCase()}`}>{problem.difficulty}</span>
+          {problem.tags.slice(0, 2).map((tag) => (
+            <span className="badge" key={tag}>{tag}</span>
+          ))}
+        </div>
       </div>
-      <div style={{ height: "calc(100% - 40px)" }}>
+
+      <div className="workspace-body">
         <ResizableSplit
           left={<DescriptionPanel problem={problem} />}
           right={
@@ -137,13 +240,20 @@ export default function ProblemDetailPage() {
                 onSelect={setSelectedCase}
                 summary={summary}
               />
-              {result?.stderr && (
-                <div className="card">
-                  <h3 style={{ marginTop: 0 }}>Result</h3>
-                  <div className={result.status === "Accepted" ? "result-ok" : "result-fail"} style={{ fontWeight: 600, marginBottom: 8 }}>
-                    {result.status}
+              {result && (
+                <div className={`verdict ${verdictClass}`}>
+                  <span className="verdict-dot" aria-hidden="true" />
+                  <div>
+                    <div className="verdict-title">
+                      {PENDING_STATUSES.has(result.status)
+                        ? result.status === "Processing"
+                          ? "Judge is running your code…"
+                          : "Queued — waiting for the judge worker…"
+                        : result.status}
+                    </div>
+                    {result.message && <div>{result.message}</div>}
+                    {result.stderr && <pre>{result.stderr}</pre>}
                   </div>
-                  <pre style={{ color: "var(--danger)" }}>{result.stderr}</pre>
                 </div>
               )}
             </>

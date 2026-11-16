@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 export default function RegisterPage() {
@@ -22,15 +22,65 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="card" style={{ maxWidth: 400, margin: "40px auto" }}>
-      <h2>Register</h2>
-      <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <input className="input" aria-label="Username" placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
-        <input className="input" aria-label="Email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
-        <input className="input" aria-label="Password" type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
-        {error && <div style={{ color: "var(--danger)" }}>{error}</div>}
-        <button className="btn btn-primary" type="submit">Create account</button>
-      </form>
+    <div className="auth">
+      <div className="auth-card">
+        <span className="auth-eyebrow">Get started</span>
+        <h1 className="auth-title">Create your account</h1>
+        <p className="auth-sub">
+          Free to use. Browse all 30 problems, run and submit in six languages, and keep your
+          verdict history.
+        </p>
+
+        <form className="form" onSubmit={submit}>
+          <div className="field">
+            <label htmlFor="register-username">Username</label>
+            <input
+              id="register-username"
+              className="input"
+              autoComplete="username"
+              placeholder="ada"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+            />
+          </div>
+
+          <div className="field">
+            <label htmlFor="register-email">Email</label>
+            <input
+              id="register-email"
+              className="input"
+              type="email"
+              autoComplete="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+
+          <div className="field">
+            <label htmlFor="register-password">Password</label>
+            <input
+              id="register-password"
+              className="input"
+              type="password"
+              autoComplete="new-password"
+              placeholder="At least 8 characters"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
+
+          {error && <div className="form-error" role="alert">{error}</div>}
+
+          <button className="btn btn-primary btn-block" type="submit">
+            Create account
+          </button>
+        </form>
+
+        <p className="form-note">
+          Already have an account? <Link to="/login">Sign in</Link>
+        </p>
+      </div>
     </div>
   );
 }

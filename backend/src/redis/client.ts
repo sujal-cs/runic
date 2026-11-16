@@ -1,8 +1,6 @@
 import * as Redis from "ioredis";
-import dotenv from "dotenv";
+import { env } from "../config/env.js";
 
-dotenv.config();
-
-// Redis is used for session storage and lightweight caching. The client is
-// shared across the app; ioredis handles reconnection automatically.
-export const redis = new (Redis as any).default(process.env.REDIS_URL || "redis://localhost:6379");
+// Redis backs session storage and the judge queue. The client is shared across
+// the app; ioredis handles reconnection automatically.
+export const redis = new (Redis as any).default(env.redisUrl);

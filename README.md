@@ -38,6 +38,8 @@ A LeetCode-inspired online coding platform for practicing data structures and al
 - Individual problem pages with descriptions, examples, and constraints
 - Integrated Monaco code editor with multi-language support
 - Run and Submit against real test cases
+- Docker-isolated judge worker with a Redis-backed job queue
+- Submission lifecycle tracking (queued, processing, verdict) with polling
 - In-house authentication with persistent sessions
 - User profiles and submission history
 - Dark and light themes
@@ -47,8 +49,16 @@ A LeetCode-inspired online coding platform for practicing data structures and al
 ```text
 project/
 ├── backend/
+│   └── src/
+│       ├── controllers/   # HTTP request/response mapping
+│       ├── services/      # Business logic and database access
+│       ├── middleware/    # Auth, validation, errors, rate limiting
+│       ├── queue/         # Redis-backed judge queue (producer side)
+│       ├── shared/        # Language registry + verdict vocabulary
+│       ├── worker/        # Judge worker: Docker execution, judging
+│       ├── routes/        # Thin Express routers
+│       └── db/            # Drizzle schema and client
 ├── frontend/
-├── database/
 ├── specs/
 ├── docker-compose.yml
 └── README.md
@@ -71,24 +81,76 @@ The `specs/` folder contains the project prompts, practices, and iteration notes
    cp .env.example .env
    cp .env.example backend/.env
    ```
-4. Run migrations:
+4. Apply the database schema:
    ```bash
-   npm run db:migrate -w backend
+   npm run db:push -w backend      # dev: sync the Drizzle schema directly
+   # or, for a fresh database using generated migrations:
+   # npm run db:migrate -w backend
    ```
 5. Ingest problems:
    ```bash
    npm run ingest -w backend
    ```
-6. Start development servers:
+6. Prepare the judge:
    ```bash
-   npm run dev
+   npm run judge:images -w backend   # pull execution images
+   docker version                    # the worker needs a reachable daemon
+   ```
+7. Start development servers (API, frontend, and judge worker):
+   ```bash
+   npm run dev:judge
+   ```
+   Or run them separately when you only need part of the stack:
+   ```bash
+   npm run dev                 # API + frontend only (submissions stay queued)
+   npm run worker -w backend   # judge worker
    ```
 
 - Frontend: http://localhost:5173
 - Backend: http://localhost:4000
 
+### Code execution
+
+Submitted code **never** runs inside the Express process. The API validates the
+request, writes a submission row, and pushes a job onto a Redis queue. A
+separate judge worker consumes the job and runs the code inside a disposable
+Docker container.
+
+```text
+React ──► Express API ──► Redis queue ──► Judge worker ──► Docker container
+                │                              │
+                └──────── PostgreSQL ◄─────────┘
+```
+
+Why it is split this way:
+
+- The API has no Docker access and no execution code path, so a bug in a route
+  handler cannot become remote code execution.
+- The worker may talk to the Docker daemon, but submitted code runs in a
+  sibling container that never sees the socket.
+- Results are persisted, so a submission survives a page refresh, a dropped
+  connection, or a worker restart.
+
+Every execution container is created with:
+
+| Control | Setting |
+| --- | --- |
+| User | uid/gid `65534` (never root) |
+| Network | `--network none` |
+| Filesystem | read-only rootfs, sources bind-mounted read-only, `--tmpfs /tmp` |
+| Memory | `--memory` + `--memory-swap` (swap disabled) |
+| CPU | `--cpus 1`, plus `RLIMIT_CPU` as a crash backstop |
+| Processes | `--pids-limit` |
+| Capabilities | `--cap-drop ALL`, `no-new-privileges` |
+| Output | capped byte count, container killed when exceeded |
+| Lifetime | wall-clock timeout, `docker rm -f` in a `finally` block |
+
+See [`docs/judge-architecture.md`](docs/judge-architecture.md) for the full
+design, status vocabulary, and operational notes.
+
+If Docker is unavailable the worker refuses to start and jobs stay queued
+instead of falling back to executing code on the host.
+
 ## License
 
 This project is for educational and personal use.
-EOF
-echo done

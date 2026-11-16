@@ -1,10 +1,45 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Runic</title>
+    <meta name="theme-color" content="#09090b" />
+    <meta
+      name="description"
+      content="Runic is an open-source coding platform: 30 curated problems, six languages, and a Docker-isolated judge that returns a real verdict."
+    />
+    <link
+      rel="preload"
+      href="/fonts/bricolage-grotesque-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/fonts/public-sans-latin.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <title>Runic — practice algorithms with a real judge</title>
+    <script>
+      // Apply the stored theme before first paint so the page never flashes
+      // the wrong background.
+      (function () {
+        try {
+          var stored = localStorage.getItem("theme");
+          var theme =
+            stored === "light" || stored === "dark"
+              ? stored
+              : window.matchMedia("(prefers-color-scheme: light)").matches
+                ? "light"
+                : "dark";
+          document.documentElement.setAttribute("data-theme", theme);
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

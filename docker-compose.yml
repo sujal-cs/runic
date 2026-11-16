@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -18,6 +16,34 @@ services:
       - "6379:6379"
     volumes:
       - redisdata:/data
+
+  # The judge worker is the only service that may run submitted code. It lives
+  # in its own container and talks to the Docker daemon to create short-lived
+  # execution containers. Start it with:
+  #   docker compose --profile judge up -d judge-worker
+  #
+  # JUDGE_WORK_DIR is bind-mounted from the host at the same path so that the
+  # sibling execution containers (created by the host daemon) can mount a job
+  # directory that really exists on the host filesystem.
+  judge-worker:
+    profiles: ["judge"]
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      target: worker
+    environment:
+      DATABASE_URL: postgresql://leetcode:leetcode@postgres:5432/leetcode
+      REDIS_URL: redis://redis:6379
+      NODE_ENV: production
+      JUDGE_WORK_DIR: ${JUDGE_WORK_DIR:-/var/lib/codeforge/jobs}
+      JUDGE_CONCURRENCY: ${JUDGE_CONCURRENCY:-2}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${JUDGE_WORK_DIR:-/var/lib/codeforge/jobs}:${JUDGE_WORK_DIR:-/var/lib/codeforge/jobs}
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
 
 volumes:
   pgdata:

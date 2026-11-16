@@ -5,7 +5,7 @@ interface Problem {
 
 export default function DescriptionPanel({ problem }: { problem: Problem }) {
   return (
-    <div className="card" style={{ height: "100%", overflow: "auto" }}>
+    <div className="panel description-panel">
       <div dangerouslySetInnerHTML={{ __html: problem.description }} />
       {problem.constraints && problem.constraints.length > 0 && (
         <>

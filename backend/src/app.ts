@@ -7,6 +7,8 @@ const session = require("express-session");
 import RedisStore from "connect-redis";
 import { redis } from "./redis/client.js";
 import { env } from "./config/env.js";
+import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
+import { requestLogger } from "./middleware/requestLogger.js";
 import authRoutes from "./routes/auth.js";
 import problemRoutes from "./routes/problems.js";
 import submissionRoutes from "./routes/submissions.js";
@@ -14,15 +16,18 @@ import userRoutes from "./routes/users.js";
 
 const app = express();
 
-// Security headers and CORS configured for the SPA origin.
+// Security headers and CORS configured for the SPA origin. In development any
+// origin is echoed so the app works from localhost, 127.0.0.1, or a LAN host;
+// production stays locked to FRONTEND_URL.
 app.use(helmet());
 app.use(
   cors({
-    origin: env.frontendUrl,
+    origin: env.nodeEnv === "production" ? env.frontendUrl : true,
     credentials: true,
   }),
 );
 app.use(express.json({ limit: "1mb" }));
+app.use(requestLogger);
 
 // Sessions are persisted in Redis so authentication survives server restarts
 // and can scale horizontally later.
@@ -45,9 +50,23 @@ app.get("/api/health", async (_req, res) => {
   try {
     const { pool } = await import("./db/index.js");
     const { redis } = await import("./redis/client.js");
+    const { judgeQueue } = await import("./queue/judgeQueue.js");
     await pool.query("SELECT 1");
     await redis.ping();
-    res.json({ ok: true, database: "up", redis: "up" });
+
+    // Surface queue health so a missing judge worker is visible without
+    // digging through Redis.
+    const [workers, counts] = await Promise.all([
+      judgeQueue.getWorkersCount().catch(() => 0),
+      judgeQueue.getJobCounts("waiting", "active").catch(() => ({ waiting: 0, active: 0 })),
+    ]);
+
+    res.json({
+      ok: true,
+      database: "up",
+      redis: "up",
+      judge: { workers, waiting: counts.waiting ?? 0, active: counts.active ?? 0 },
+    });
   } catch (err: any) {
     res.status(503).json({ ok: false, error: err.message });
   }
@@ -58,10 +77,10 @@ app.use("/api/problems", problemRoutes);
 app.use("/api/submissions", submissionRoutes);
 app.use("/api/users", userRoutes);
 
-// Central error handler keeps route code simple.
-app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error(err);
-  res.status(err.status || 500).json({ error: err.message || "Internal server error" });
-});
+// Unmatched routes get the same JSON error shape as handled failures.
+app.use(notFoundHandler);
+
+// Central error handler. Must be registered last, after all routes.
+app.use(errorHandler);
 
 export default app;
