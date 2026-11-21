@@ -1,5 +1,7 @@
 import Editor, { type BeforeMount } from "@monaco-editor/react";
 import { useCallback } from "react";
+import { Button } from "../ui/Button";
+import { SelectField } from "../ui/Field";
 
 const LANG_MAP: Record<string, string> = {
   javascript: "javascript", typescript: "typescript", python: "python", python3: "python",
@@ -75,10 +77,10 @@ export default function EditorPanel({ languages, language, onLanguageChange, cod
   }, []);
 
   return (
-    <div className="panel editor-panel">
-      <div className="editor-toolbar">
-        <select
-          className="input"
+    <div className="flex min-h-[220px] min-w-0 flex-1 flex-col overflow-hidden rounded-card border border-stroke bg-surface">
+      <div className="flex shrink-0 items-center gap-2 border-b border-stroke px-3 py-2">
+        <SelectField
+          className="h-8 w-auto min-w-32 rounded-full bg-surface px-3 text-xs"
           aria-label="Language"
           value={language}
           onChange={(e) => onLanguageChange(e.target.value)}
@@ -86,17 +88,17 @@ export default function EditorPanel({ languages, language, onLanguageChange, cod
           {languages.map((l) => (
             <option key={l} value={l}>{l}</option>
           ))}
-        </select>
-        <div className="editor-toolbar-spacer" />
-        <button className="btn btn-sm" onClick={onRun} disabled={running}>
+        </SelectField>
+        <div className="flex-1" />
+        <Button size="sm" onClick={onRun} disabled={running}>
           {running ? "Running…" : "Run"}
-        </button>
-        <button className="btn btn-primary btn-sm" onClick={onSubmit} disabled={submitting}>
+        </Button>
+        <Button variant="primary" size="sm" onClick={onSubmit} disabled={submitting}>
           {submitting ? "Submitting…" : "Submit"}
-        </button>
+        </Button>
       </div>
 
-      <div className="editor-shell">
+      <div className="min-h-0 flex-1">
         <Editor
           height="100%"
           language={LANG_MAP[language] || "javascript"}

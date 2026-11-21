@@ -1,8 +1,8 @@
 import type { Request, Response } from "express";
-import { unauthorized } from "../errors.js";
-import { asyncHandler } from "../middleware/errorHandler.js";
-import { authenticatedUserId } from "../middleware/auth.js";
-import { authenticateUser, getPublicUserById, registerUser } from "../services/auth.service.js";
+import { unauthorized } from "../../errors.js";
+import { asyncHandler } from "../../middleware/errorHandler.js";
+import { authenticatedUserId } from "../../middleware/auth.js";
+import { authenticateUser, getPublicUserById, registerUser } from "./service.js";
 
 export const register = asyncHandler(async (req: Request, res: Response) => {
   const user = await registerUser(req.body);

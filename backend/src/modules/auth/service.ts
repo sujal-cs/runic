@@ -1,9 +1,9 @@
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
-import { db } from "../db/index.js";
-import { users } from "../db/schema.js";
-import { conflict, getPostgresError, unauthorized } from "../errors.js";
-import type { RegisterInput } from "../validation/schemas.js";
+import { db } from "../../db/index.js";
+import { users } from "../../db/schema.js";
+import { conflict, getPostgresError, unauthorized } from "../../errors.js";
+import type { RegisterInput } from "./schemas.js";
 
 export type UserRecord = typeof users.$inferSelect;
 

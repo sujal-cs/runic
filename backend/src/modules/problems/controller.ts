@@ -1,12 +1,12 @@
 import type { Request, Response } from "express";
-import { notFound } from "../errors.js";
-import { asyncHandler } from "../middleware/errorHandler.js";
+import { notFound } from "../../errors.js";
+import { asyncHandler } from "../../middleware/errorHandler.js";
 import {
   getProblemBySlug,
   listProblems,
   listTags,
   type ProblemRecord,
-} from "../services/problems.service.js";
+} from "./service.js";
 
 function queryString(value: unknown): string | undefined {
   return typeof value === "string" ? value : undefined;

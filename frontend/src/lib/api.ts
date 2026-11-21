@@ -1,4 +1,6 @@
-const BASE = import.meta.env.VITE_API_URL || "http://localhost:4000";
+const BASE =
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.DEV ? "" : "http://localhost:4000");
 
 // Thin fetch wrapper that keeps credentials (session cookie) attached and
 // normalizes JSON responses and errors for the rest of the app.

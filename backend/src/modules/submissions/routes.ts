@@ -1,8 +1,8 @@
 import { Router } from "express";
-import * as submissionsController from "../controllers/submissions.controller.js";
-import { requireAuth, requireSubmissionOwner } from "../middleware/auth.js";
-import { validate } from "../middleware/validate.js";
-import { runAllSchema, runCodeSchema, submissionIdParamsSchema, submitSchema } from "../validation/schemas.js";
+import * as submissionsController from "./controller.js";
+import { requireAuth, requireSubmissionOwner } from "../../middleware/auth.js";
+import { validate } from "../../middleware/validate.js";
+import { runAllSchema, runCodeSchema, submissionIdParamsSchema, submitSchema } from "./schemas.js";
 
 const router = Router();
 

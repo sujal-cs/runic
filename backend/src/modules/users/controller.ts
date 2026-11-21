@@ -1,8 +1,8 @@
 import type { Request, Response } from "express";
-import { notFound } from "../errors.js";
-import { asyncHandler } from "../middleware/errorHandler.js";
-import { authenticatedUserId } from "../middleware/auth.js";
-import { findUserByUsername, listUserSubmissionHistory } from "../services/users.service.js";
+import { notFound } from "../../errors.js";
+import { asyncHandler } from "../../middleware/errorHandler.js";
+import { authenticatedUserId } from "../../middleware/auth.js";
+import { findUserByUsername, listUserSubmissionHistory } from "./service.js";
 
 export const submissionHistory = asyncHandler(async (req: Request, res: Response) => {
   const rows = await listUserSubmissionHistory(authenticatedUserId(req));

@@ -9,10 +9,10 @@ import { redis } from "./redis/client.js";
 import { env } from "./config/env.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { requestLogger } from "./middleware/requestLogger.js";
-import authRoutes from "./routes/auth.js";
-import problemRoutes from "./routes/problems.js";
-import submissionRoutes from "./routes/submissions.js";
-import userRoutes from "./routes/users.js";
+import authRoutes from "./modules/auth/routes.js";
+import problemRoutes from "./modules/problems/routes.js";
+import submissionRoutes from "./modules/submissions/routes.js";
+import userRoutes from "./modules/users/routes.js";
 
 const app = express();
 

@@ -7,6 +7,8 @@ import ResizableSplit from "../components/problem/ResizableSplit";
 import DescriptionPanel from "../components/problem/DescriptionPanel";
 import EditorPanel from "../components/problem/EditorPanel";
 import TestCasePanel from "../components/problem/TestCasePanel";
+import ProblemWorkspaceHeader from "../components/problem/ProblemWorkspaceHeader";
+import VerdictBanner from "../components/problem/VerdictBanner";
 
 interface Problem {
   id: number;
@@ -173,8 +175,8 @@ export default function ProblemDetailPage() {
 
   if (!problem) {
     return (
-      <div className="workspace">
-        <div className="state">Loading problem…</div>
+      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-canvas text-sm text-ink-subtle">
+        Loading problem…
       </div>
     );
   }
@@ -187,40 +189,39 @@ export default function ProblemDetailPage() {
       : `${passedCount}/${results.length} Test Cases Passed · ${result.status}`
     : undefined;
 
-  const verdictClass =
-    result?.status === "Accepted"
-      ? "is-ok"
-      : PENDING_STATUSES.has(result?.status)
-        ? "is-pending"
-        : result
-          ? "is-fail"
-          : "";
+  const verdictState = result?.status === "Accepted"
+    ? "success"
+    : PENDING_STATUSES.has(result?.status)
+      ? "pending"
+      : "error";
+  const verdictTitle = PENDING_STATUSES.has(result?.status)
+    ? result.status === "Processing"
+      ? "Judge is running your code…"
+      : "Queued — waiting for the judge worker…"
+    : result?.status;
 
   return (
-    <div className="workspace">
-      <div className="workspace-bar">
-        <button type="button" className="workspace-back" onClick={() => navigate("/problems")}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M19 12H5M11 6l-6 6 6 6" />
-          </svg>
-          Problems
-        </button>
-        <h1 className="workspace-title">
-          {problem.frontend_id}. {problem.title}
-        </h1>
-        <div className="workspace-meta">
-          <span className={`badge badge-${problem.difficulty.toLowerCase()}`}>{problem.difficulty}</span>
-          {problem.tags.slice(0, 2).map((tag) => (
-            <span className="badge" key={tag}>{tag}</span>
-          ))}
-        </div>
-      </div>
-
-      <div className="workspace-body">
+    <div className="flex min-h-[calc(100vh-4rem)] flex-col bg-canvas">
+      <ProblemWorkspaceHeader
+        frontendId={problem.frontend_id}
+        title={problem.title}
+        difficulty={problem.difficulty}
+        tags={problem.tags}
+      />
+      <div className="min-h-[calc(100vh-9.5rem)] flex-1 p-3 md:h-[calc(100vh-9.5rem)] md:min-h-[480px] md:px-5 md:py-4">
         <ResizableSplit
           left={<DescriptionPanel problem={problem} />}
           right={
-            <>
+            <div className="flex h-full min-h-0 flex-col gap-3">
+              {result && (
+                <VerdictBanner
+                  state={verdictState}
+                  title={verdictTitle}
+                  message={result.message}
+                  stderr={result.stderr}
+                />
+              )}
+              <div className="flex min-h-0 flex-1 flex-col gap-3">
               <EditorPanel
                 languages={Object.keys(problem.code_snippets || {})}
                 language={language}
@@ -240,23 +241,8 @@ export default function ProblemDetailPage() {
                 onSelect={setSelectedCase}
                 summary={summary}
               />
-              {result && (
-                <div className={`verdict ${verdictClass}`}>
-                  <span className="verdict-dot" aria-hidden="true" />
-                  <div>
-                    <div className="verdict-title">
-                      {PENDING_STATUSES.has(result.status)
-                        ? result.status === "Processing"
-                          ? "Judge is running your code…"
-                          : "Queued — waiting for the judge worker…"
-                        : result.status}
-                    </div>
-                    {result.message && <div>{result.message}</div>}
-                    {result.stderr && <pre>{result.stderr}</pre>}
-                  </div>
-                </div>
-              )}
-            </>
+              </div>
+            </div>
           }
         />
       </div>

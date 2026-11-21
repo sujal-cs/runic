@@ -1,3 +1,6 @@
+import { Button } from "./ui/Button";
+import { SelectField } from "./ui/Field";
+
 interface PaginationProps {
   page: number;
   pageSize: number;
@@ -44,17 +47,20 @@ export default function Pagination({
   const pages = buildPages(page, totalPages);
 
   return (
-    <nav className="pagination" aria-label={`${itemLabel} pagination`}>
-      <span className="pagination-summary">
+    <nav
+      className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-ink-subtle max-sm:justify-center"
+      aria-label={`${itemLabel} pagination`}
+    >
+      <span>
         Showing {firstItem}–{lastItem} of {totalItems} {itemLabel}
       </span>
 
-      <div className="pagination-controls">
+      <div className="flex flex-wrap items-center justify-center gap-1.5">
         {onPageSizeChange && (
-          <label className="pagination-size">
-            Per page
-            <select
-              className="input"
+          <label className="mr-2 inline-flex items-center gap-2">
+            Per page:
+            <SelectField
+              className="h-8 w-[68px] px-2 text-xs"
               aria-label={`${itemLabel} per page`}
               value={pageSize}
               onChange={(event) => onPageSizeChange(Number(event.target.value))}
@@ -64,48 +70,47 @@ export default function Pagination({
                   {option}
                 </option>
               ))}
-            </select>
+            </SelectField>
           </label>
         )}
 
-        <button
+        <Button
           type="button"
-          className="btn pagination-btn"
+          size="sm"
           onClick={() => onPageChange(page - 1)}
           disabled={page <= 1}
           aria-label="Previous page"
         >
           Prev
-        </button>
+        </Button>
 
         {pages.map((item, index) =>
           item === "ellipsis" ? (
-            <span key={`ellipsis-${index}`} className="pagination-ellipsis" aria-hidden="true">
-              …
-            </span>
+            <span key={`ellipsis-${index}`} className="px-1 text-ink-subtle" aria-hidden="true">…</span>
           ) : (
-            <button
+            <Button
               key={item}
               type="button"
-              className="btn pagination-btn"
+              size="sm"
+              variant={item === page ? "primary" : "secondary"}
               aria-current={item === page ? "page" : undefined}
               aria-label={`Page ${item}`}
               onClick={() => onPageChange(item)}
             >
               {item}
-            </button>
+            </Button>
           ),
         )}
 
-        <button
+        <Button
           type="button"
-          className="btn pagination-btn"
+          size="sm"
           onClick={() => onPageChange(page + 1)}
           disabled={page >= totalPages}
           aria-label="Next page"
         >
           Next
-        </button>
+        </Button>
       </div>
     </nav>
   );

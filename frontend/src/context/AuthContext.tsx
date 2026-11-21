@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { api } from "../lib/api";
 
-interface User {
+export interface User {
   id: string;
   username: string;
   email?: string;

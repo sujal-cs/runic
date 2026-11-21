@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import { forbidden, notFound, unauthorized } from "../errors.js";
-import { getSubmissionForUser } from "../services/submissions.service.js";
+import { getSubmissionForUser } from "../modules/submissions/service.js";
 
 // The only source of truth for "who is calling" is the Redis-backed session.
 // Route code never trusts client-supplied user identifiers.

@@ -1,5 +1,9 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import AuthCard from "../components/auth/AuthCard";
+import FormField from "../components/auth/FormField";
+import { Button } from "../components/ui/Button";
+import { TextInput } from "../components/ui/Field";
 import { useAuth } from "../context/AuthContext";
 
 export default function RegisterPage() {
@@ -22,65 +26,45 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="auth">
-      <div className="auth-card">
-        <span className="auth-eyebrow">Get started</span>
-        <h1 className="auth-title">Create your account</h1>
-        <p className="auth-sub">
-          Free to use. Browse all 30 problems, run and submit in six languages, and keep your
-          verdict history.
-        </p>
-
-        <form className="form" onSubmit={submit}>
-          <div className="field">
-            <label htmlFor="register-username">Username</label>
-            <input
-              id="register-username"
-              className="input"
-              autoComplete="username"
-              placeholder="ada"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-            />
-          </div>
-
-          <div className="field">
-            <label htmlFor="register-email">Email</label>
-            <input
-              id="register-email"
-              className="input"
-              type="email"
-              autoComplete="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-
-          <div className="field">
-            <label htmlFor="register-password">Password</label>
-            <input
-              id="register-password"
-              className="input"
-              type="password"
-              autoComplete="new-password"
-              placeholder="At least 8 characters"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
-
-          {error && <div className="form-error" role="alert">{error}</div>}
-
-          <button className="btn btn-primary btn-block" type="submit">
-            Create account
-          </button>
-        </form>
-
-        <p className="form-note">
-          Already have an account? <Link to="/login">Sign in</Link>
-        </p>
-      </div>
-    </div>
+    <AuthCard
+      eyebrow="Get started"
+      title="Create your account"
+      description="Practice problems, review clear verdicts, and keep your progress close."
+      footer={<>Already have an account? <Link className="font-semibold text-brand hover:text-brand-hover" to="/login">Sign in</Link></>}
+    >
+      <form className="flex flex-col gap-4" onSubmit={submit}>
+        <FormField id="register-username" label="Username">
+          <TextInput
+            id="register-username"
+            autoComplete="username"
+            placeholder="ada"
+            value={username}
+            onChange={(event) => setUsername(event.target.value)}
+          />
+        </FormField>
+        <FormField id="register-email" label="Email">
+          <TextInput
+            id="register-email"
+            type="email"
+            autoComplete="email"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+          />
+        </FormField>
+        <FormField id="register-password" label="Password">
+          <TextInput
+            id="register-password"
+            type="password"
+            autoComplete="new-password"
+            placeholder="At least 8 characters"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+          />
+        </FormField>
+        {error && <div className="text-sm text-danger" role="alert">{error}</div>}
+        <Button className="w-full" variant="primary" type="submit">Create account</Button>
+      </form>
+    </AuthCard>
   );
 }

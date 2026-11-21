@@ -1,13 +1,13 @@
 import type { Request, Response } from "express";
-import { asyncHandler } from "../middleware/errorHandler.js";
-import { authenticatedUserId } from "../middleware/auth.js";
+import { asyncHandler } from "../../middleware/errorHandler.js";
+import { authenticatedUserId } from "../../middleware/auth.js";
 import {
   createSubmission,
   listUserSubmissions,
   runAll,
   runCode,
   type SubmissionRecord,
-} from "../services/submissions.service.js";
+} from "./service.js";
 
 function toSummary(submission: SubmissionRecord) {
   return {

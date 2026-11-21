@@ -1,6 +1,6 @@
 # Runic
 
-A LeetCode-inspired online coding platform for practicing data structures and algorithms. Built with a React frontend, an Express + TypeScript backend, PostgreSQL, and Redis.
+A LeetCode-inspired online coding platform for practicing data structures and algorithms. Built with a React, TypeScript, and Tailwind CSS frontend; an Express + TypeScript backend; PostgreSQL; and Redis.
 
 **Author:** [Sujal](https://github.com/sujal-cs/)  
 **Repository:** https://github.com/sujal-cs/runic
@@ -50,15 +50,21 @@ A LeetCode-inspired online coding platform for practicing data structures and al
 project/
 ├── backend/
 │   └── src/
-│       ├── controllers/   # HTTP request/response mapping
-│       ├── services/      # Business logic and database access
-│       ├── middleware/    # Auth, validation, errors, rate limiting
-│       ├── queue/         # Redis-backed judge queue (producer side)
-│       ├── shared/        # Language registry + verdict vocabulary
-│       ├── worker/        # Judge worker: Docker execution, judging
-│       ├── routes/        # Thin Express routers
-│       └── db/            # Drizzle schema and client
+│       ├── modules/       # Feature-first routes, controllers, services, schemas
+│       ├── middleware/    # Shared auth, validation, errors, rate limiting
+│       ├── worker/        # Judge worker: Docker execution and verdicts
+│       ├── queue/         # Redis-backed judge queue
+│       ├── shared/        # Language registry and verdict vocabulary
+│       ├── db/            # Drizzle schema and client
+│       └── config/        # Environment configuration
 ├── frontend/
+│   └── src/
+│       ├── components/ui/       # Shared buttons, fields, tables, badges, cards
+│       ├── components/{auth,landing,problem,problems,profile}/
+│       ├── pages/               # Route-level page composition
+│       ├── context/             # Authentication and theme state
+│       ├── lib/                 # API client and class utilities
+│       └── styles/              # Tailwind theme and rich problem-content styles
 ├── specs/
 ├── docker-compose.yml
 └── README.md
@@ -108,6 +114,13 @@ The `specs/` folder contains the project prompts, practices, and iteration notes
 
 - Frontend: http://localhost:5173
 - Backend: http://localhost:4000
+
+### Test from another device on your network
+
+The Vite development server listens on all network interfaces and proxies
+`/api` requests to the local backend. Start the stack with `npm run dev`, then
+open `http://<your-computer-ipv4>:5173` on a device connected to the same Wi-Fi.
+Allow port `5173` through your local firewall if the device cannot connect.
 
 ### Code execution
 

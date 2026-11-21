@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from "react";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 interface Props {
   left: ReactNode;
@@ -8,6 +8,8 @@ interface Props {
   min?: number;
   max?: number;
 }
+
+const HANDLE_SIZE = 16;
 
 // Reusable draggable split-pane used by the problem workspace.
 export default function ResizableSplit({ left, right, initialLeft = 45, min = 25, max = 75 }: Props) {
@@ -20,7 +22,9 @@ export default function ResizableSplit({ left, right, initialLeft = 45, min = 25
     const onMove = (e: MouseEvent) => {
       const rect = containerRef.current?.getBoundingClientRect();
       if (!rect) return;
-      const pct = ((e.clientX - rect.left) / rect.width) * 100;
+      const availableWidth = rect.width - HANDLE_SIZE;
+      const leftWidth = e.clientX - rect.left - HANDLE_SIZE / 2;
+      const pct = (leftWidth / availableWidth) * 100;
       setLeftWidth(Math.min(max, Math.max(min, pct)));
     };
     const onUp = () => setDragging(false);
@@ -37,27 +41,26 @@ export default function ResizableSplit({ left, right, initialLeft = 45, min = 25
   }, [dragging, min, max]);
 
   return (
-    <div ref={containerRef} style={{ display: "grid", gridTemplateColumns: `${leftWidth}% 4px ${100 - leftWidth}%`, height: "100%", minHeight: 0 }}>
-      <div style={{ minWidth: 0, overflow: "auto" }}>{left}</div>
+    <div
+      ref={containerRef}
+      className="grid h-full min-h-0 grid-cols-1 md:grid-cols-[minmax(0,var(--left-width))_16px_minmax(0,var(--right-width))]"
+      style={{
+        "--left-width": `${leftWidth}fr`,
+        "--right-width": `${100 - leftWidth}fr`,
+      } as CSSProperties}
+    >
+      <div className="min-h-0 min-w-0">{left}</div>
       <div
-        className="resize-handle"
+        className="group relative hidden cursor-col-resize items-stretch justify-center md:flex"
         onMouseDown={() => setDragging(true)}
-        style={{ cursor: "col-resize", background: "transparent", alignSelf: "stretch", position: "relative" }}
         title="Drag to resize"
+        role="separator"
+        aria-label="Resize problem and editor panels"
+        aria-orientation="vertical"
       >
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            bottom: 0,
-            left: 1,
-            width: 2,
-            background: dragging ? "var(--brand)" : "transparent",
-            transition: "background 0.15s ease",
-          }}
-        />
+        <div className={`my-3 w-px rounded-full transition-colors ${dragging ? "bg-brand" : "bg-stroke group-hover:bg-stroke-strong"}`} />
       </div>
-      <div style={{ minWidth: 0, overflow: "auto", display: "flex", flexDirection: "column", gap: 12 }}>{right}</div>
+      <div className="min-h-0 min-w-0">{right}</div>
     </div>
   );
 }

@@ -1,20 +1,15 @@
 import { useEffect, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
+import PageHeader from "../components/PageHeader";
 import Pagination from "../components/Pagination";
+import ProblemFilters from "../components/problems/ProblemFilters";
+import ProblemTable, { type ProblemListItem } from "../components/problems/ProblemTable";
+import { Button } from "../components/ui/Button";
+import { Card } from "../components/ui/Card";
 import { api } from "../lib/api";
 
-interface Problem {
-  id: number;
-  frontend_id: string;
-  title: string;
-  slug: string;
-  difficulty: string;
-  tags: string[];
-  acceptance_rate: number;
-}
-
 interface ProblemsResponse {
-  problems: Problem[];
+  problems: ProblemListItem[];
   total: number;
   page: number;
   limit: number;
@@ -25,7 +20,7 @@ export default function ProblemListPage() {
   const [searchParams] = useSearchParams();
   const urlQuery = searchParams.get("q") ?? "";
 
-  const [problems, setProblems] = useState<Problem[]>([]);
+  const [problems, setProblems] = useState<ProblemListItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -98,88 +93,53 @@ export default function ProblemListPage() {
   const hasFilters = Boolean(q || difficulty || tag);
 
   return (
-    <div>
-      <header className="page-head">
-        <span className="page-eyebrow">Problem set</span>
-        <h1 className="page-title">Pick a problem and start writing.</h1>
-        <p className="page-lede">
-          30 curated problems across Easy, Medium, and Hard. Filter by difficulty or topic,
-          then run and submit in six languages.
-        </p>
-      </header>
+    <div className="pb-6">
+      <PageHeader
+        eyebrow="Problem set"
+        title="Pick a problem and start writing."
+        description="30 curated problems across Easy, Medium, and Hard. Filter by difficulty or topic, then run and submit in six languages."
+      />
 
-      <div className="filter-bar">
-        <input
-          className="input"
-          aria-label="Search problems"
-          placeholder="Search by title…"
-          value={q}
-          onChange={(e) => {
-            setQ(e.target.value);
-            setPage(1);
-          }}
-        />
-        <select
-          className="input"
-          aria-label="Difficulty"
-          value={difficulty}
-          onChange={(e) => {
-            setDifficulty(e.target.value);
-            setPage(1);
-          }}
-        >
-          <option value="">All difficulties</option>
-          <option value="Easy">Easy</option>
-          <option value="Medium">Medium</option>
-          <option value="Hard">Hard</option>
-        </select>
-        <select
-          className="input"
-          aria-label="Tag"
-          value={tag}
-          onChange={(e) => {
-            setTag(e.target.value);
-            setPage(1);
-          }}
-        >
-          <option value="">All tags</option>
-          {tags.map((t) => (
-            <option key={t} value={t}>
-              {t}
-            </option>
-          ))}
-        </select>
-        <select
-          className="input"
-          aria-label="Sort order"
-          value={sort}
-          onChange={(e) => {
-            setSort(e.target.value);
-            setPage(1);
-          }}
-        >
-          <option value="id">Sort by #</option>
-          <option value="title">Sort by title</option>
-          <option value="difficulty">Sort by difficulty</option>
-        </select>
-      </div>
+      <ProblemFilters
+        query={q}
+        difficulty={difficulty}
+        tag={tag}
+        sort={sort}
+        tags={tags}
+        onQueryChange={(value) => {
+          setQ(value);
+          setPage(1);
+        }}
+        onDifficultyChange={(value) => {
+          setDifficulty(value);
+          setPage(1);
+        }}
+        onTagChange={(value) => {
+          setTag(value);
+          setPage(1);
+        }}
+        onSortChange={(value) => {
+          setSort(value);
+          setPage(1);
+        }}
+      />
 
       {error ? (
-        <div className="card state state-error" role="alert">
+        <Card className="flex flex-wrap items-center gap-3 border-danger/30 p-5 text-danger" role="alert">
           <strong>Could not load problems.</strong>
-          <span>{error}</span>
-          <button type="button" className="btn" onClick={() => setReloadToken((n) => n + 1)}>
+          <span className="text-sm">{error}</span>
+          <Button type="button" onClick={() => setReloadToken((n) => n + 1)}>
             Retry
-          </button>
-        </div>
+          </Button>
+        </Card>
       ) : loading ? (
-        <div className="card state">Loading problems…</div>
+        <Card className="p-5 text-sm text-ink-secondary" role="status">Loading problems…</Card>
       ) : problems.length === 0 ? (
-        <div className="card state">
-          No problems match your filters.
-          <button
+        <Card className="flex flex-wrap items-center gap-4 p-5 text-sm text-ink-secondary">
+          <span>No problems match your filters.</span>
+          <Button
             type="button"
-            className="btn btn-ghost"
+            variant="ghost"
             onClick={() => {
               setQ("");
               setDifficulty("");
@@ -188,45 +148,11 @@ export default function ProblemListPage() {
             }}
           >
             Clear filters
-          </button>
-        </div>
+          </Button>
+        </Card>
       ) : (
         <>
-          <div className="table-shell">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Title</th>
-                  <th>Difficulty</th>
-                  <th>Tags</th>
-                  <th>Acceptance</th>
-                </tr>
-              </thead>
-              <tbody>
-                {problems.map((p) => (
-                  <tr key={p.id}>
-                    <td className="table-index">{p.frontend_id}</td>
-                    <td>
-                      <Link to={`/problems/${p.slug}`}>{p.title}</Link>
-                    </td>
-                    <td>
-                      <span className={`badge badge-${p.difficulty.toLowerCase()}`}>{p.difficulty}</span>
-                    </td>
-                    <td className="table-tags">
-                      {(p.tags || []).slice(0, 3).map((t) => (
-                        <span className="tag" key={t}>{t}</span>
-                      ))}
-                    </td>
-                    <td className="table-mono">
-                      {p.acceptance_rate ? `${Number(p.acceptance_rate).toFixed(1)}%` : "—"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
+          <ProblemTable problems={problems} />
           <Pagination
             page={Math.min(page, totalPages)}
             pageSize={pageSize}
@@ -242,7 +168,7 @@ export default function ProblemListPage() {
       )}
 
       {!hasFilters && !loading && !error && problems.length > 0 && (
-        <div className="list-note">
+        <div className="mt-4 text-xs text-ink-subtle">
           Showing all problems. Use the filters above or the search box in the header to narrow
           the list.
         </div>

@@ -1,6 +1,6 @@
 import { and, eq, ilike, or, sql, type SQL } from "drizzle-orm";
-import { db } from "../db/index.js";
-import { problems } from "../db/schema.js";
+import { db } from "../../db/index.js";
+import { problems } from "../../db/schema.js";
 
 export type ProblemRecord = typeof problems.$inferSelect;
 

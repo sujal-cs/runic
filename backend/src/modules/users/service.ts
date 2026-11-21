@@ -1,6 +1,6 @@
 import { desc, eq } from "drizzle-orm";
-import { db } from "../db/index.js";
-import { problems, submissions, users } from "../db/schema.js";
+import { db } from "../../db/index.js";
+import { problems, submissions, users } from "../../db/schema.js";
 
 export type UserRecord = typeof users.$inferSelect;
 

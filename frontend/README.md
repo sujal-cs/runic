@@ -1,32 +1,23 @@
-# React + TypeScript + Vite
+# Runic Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+The frontend is a React, TypeScript, Vite, and Tailwind CSS application. Route
+components compose shared UI primitives and feature-specific components.
 
-Currently, two official plugins are available:
+## Structure
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- `src/pages/` contains route-level page components.
+- `src/components/ui/` contains reusable controls, cards, badges, and tables.
+- `src/components/<feature>/` contains feature-specific pieces for auth, landing,
+  problems, the coding workspace, and profiles.
+- `src/context/` contains shared authentication and theme state.
+- `src/lib/` contains the API client and small utilities.
+- `src/styles/theme.css` defines design tokens and base styles. Rich problem
+  descriptions have scoped styles in `src/styles/problem-content.css`.
 
-## React Compiler
+## Development
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Run `npm run dev -w frontend` from the repository root. Vite listens on
+`0.0.0.0:5173` and proxies `/api` requests to the backend on port `4000`, so
+another device on the same network can open `http://<your-computer-ipv4>:5173`.
 
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
-```
-
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Run `npm run build -w frontend` to type-check and create a production build.

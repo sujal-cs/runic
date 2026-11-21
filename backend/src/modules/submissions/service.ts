@@ -1,23 +1,23 @@
 import { and, desc, eq } from "drizzle-orm";
-import { env } from "../config/env.js";
-import { db } from "../db/index.js";
-import { submissions } from "../db/schema.js";
-import { AppError, badRequest, notFound } from "../errors.js";
+import { env } from "../../config/env.js";
+import { db } from "../../db/index.js";
+import { submissions } from "../../db/schema.js";
+import { AppError, badRequest, notFound } from "../../errors.js";
 import {
   enqueueJudgeJob,
   JOB_JUDGE,
   JOB_RUN,
   JOB_RUN_ALL,
   waitForJobResult,
-} from "../queue/judgeQueue.js";
-import { resolveLanguage } from "../shared/languages.js";
+} from "../../queue/judgeQueue.js";
+import { resolveLanguage } from "../../shared/languages.js";
 import {
   QUEUED_STATUS,
   type JudgeJobOutcome,
   type JudgeResult,
   type RunResult,
-} from "../shared/verdicts.js";
-import { getProblemById } from "./problems.service.js";
+} from "../../shared/verdicts.js";
+import { getProblemById } from "../problems/service.js";
 
 // The API never evaluates code. It validates the request, records the
 // submission, hands the work to the judge queue, and (for a better UX) waits a
